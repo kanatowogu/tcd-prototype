@@ -17,10 +17,11 @@ export const EvidenceArtwork: React.FC<EvidenceArtworkProps> = ({
   caption,
 }) => {
   const [imgError, setImgError] = useState(false);
+  const baseUrl = import.meta.env.BASE_URL;
   const srcMap: Record<EvidenceType, string> = {
-    Photo_Initial: '/assets/Photo_Initial.png',
-    CCTV_SectorB: '/assets/CCTV_SectorB.png',
-    Photo_Truth: '/assets/Photo_Truth.png',
+    Photo_Initial: `${baseUrl}assets/Photo_Initial.png`,
+    CCTV_SectorB: `${baseUrl}assets/CCTV_SectorB.png`,
+    Photo_Truth: `${baseUrl}assets/Photo_Truth.png`,
   };
 
   return (

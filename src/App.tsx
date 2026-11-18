@@ -53,8 +53,24 @@ type InnerVoiceState =
   | { kind: 'endingA_final' }
   | { kind: 'endingB_final' };
 
+const BRIGHTNESS_STORAGE_KEY = 'tcd_scene_brightness';
+const DEFAULT_BRIGHTNESS = 1.2;
+
+function loadInitialBrightness(): number {
+  try {
+    const raw = window.localStorage.getItem(BRIGHTNESS_STORAGE_KEY);
+    if (raw === null) return DEFAULT_BRIGHTNESS;
+    const parsed = Number.parseFloat(raw);
+    if (!Number.isFinite(parsed)) return DEFAULT_BRIGHTNESS;
+    return Math.min(2.0, Math.max(0.5, parsed));
+  } catch {
+    return DEFAULT_BRIGHTNESS;
+  }
+}
+
 export const App: React.FC = () => {
   const [lang, setLang] = useState<Language>('zh');
+  const [brightness, setBrightness] = useState<number>(loadInitialBrightness);
   const [gameState, setGameState] = useState<GameState>(INITIAL_GAME_STATE);
   const [focusTarget, setFocusTarget] = useState<FocusTarget>('none');
   const [voiceState, setVoiceState] = useState<InnerVoiceState>({ kind: 'wakeup' });
@@ -98,6 +114,15 @@ export const App: React.FC = () => {
     bumpInteraction();
     setLang((prev) => (prev === 'zh' ? 'en' : 'zh'));
   };
+
+  // Persist scene brightness preference
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(BRIGHTNESS_STORAGE_KEY, brightness.toFixed(2));
+    } catch {
+      // Ignore storage quota / privacy mode errors
+    }
+  }, [brightness]);
 
   // Cleanup ink bleed timer on unmount
   useEffect(() => {
@@ -604,6 +629,7 @@ export const App: React.FC = () => {
         endingARedactedCount={
           gameState.endingChoice === 'A' ? gameState.endingARedacted.length : 0
         }
+        brightness={brightness}
         onSelectFocus={handleSelectFocus}
       />
 
@@ -652,6 +678,8 @@ export const App: React.FC = () => {
         innerVoice={innerVoiceText}
         innerVoiceSource={innerVoiceSource}
         subtitleLagging={subtitleLagging}
+        brightness={brightness}
+        onChangeBrightness={setBrightness}
         onToggleLang={toggleLanguage}
         onExitFocus={() => handleSelectFocus('none')}
         onOpenAct3Review={() => setShowAct3ReviewModal(true)}

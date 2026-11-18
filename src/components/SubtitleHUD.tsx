@@ -16,6 +16,8 @@ interface SubtitleHUDProps {
   innerVoice: string;
   innerVoiceSource: string;
   subtitleLagging: boolean;
+  brightness: number;
+  onChangeBrightness: (value: number) => void;
   onToggleLang: () => void;
   onExitFocus: () => void;
   onOpenAct3Review: () => void;
@@ -35,6 +37,8 @@ export const SubtitleHUD: React.FC<SubtitleHUDProps> = ({
   innerVoice,
   innerVoiceSource,
   subtitleLagging,
+  brightness,
+  onChangeBrightness,
   onToggleLang,
   onExitFocus,
   onOpenAct3Review,
@@ -89,6 +93,41 @@ export const SubtitleHUD: React.FC<SubtitleHUDProps> = ({
             {v2_4_5.asset5_resignation.proceedToFinalButton}
           </button>
         )}
+
+        <div
+          className="hud-brightness-control"
+          title={
+            lang === 'zh'
+              ? '调节画面亮度 / 光照强度（双击数值恢复默认 1.2x）'
+              : 'Adjust scene brightness / lighting (double-click value to reset 1.2x)'
+          }
+        >
+          <span className="hud-brightness-label" aria-hidden="true">
+            {lang === 'zh' ? '亮度' : 'LUX'}
+          </span>
+          <input
+            type="range"
+            className="hud-brightness-slider"
+            min={0.5}
+            max={2.0}
+            step={0.05}
+            value={brightness}
+            aria-label={
+              lang === 'zh' ? '画面亮度 / 光照强度' : 'Scene brightness'
+            }
+            onChange={(e) => onChangeBrightness(parseFloat(e.target.value))}
+          />
+          <button
+            type="button"
+            className="hud-brightness-value"
+            onDoubleClick={() => onChangeBrightness(1.2)}
+            title={lang === 'zh' ? '双击恢复默认 1.2x' : 'Double-click to reset 1.2x'}
+          >
+            {(Number.isInteger(Math.round(brightness * 100) / 10)
+              ? brightness.toFixed(1)
+              : brightness.toFixed(2)) + 'x'}
+          </button>
+        </div>
 
         <button
           type="button"

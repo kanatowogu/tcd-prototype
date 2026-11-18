@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Canvas, ThreeEvent, useFrame } from '@react-three/fiber';
+import { Canvas, ThreeEvent, useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { FocusTarget, Language, RedactTargetId } from '../types';
 import {
@@ -28,6 +28,7 @@ interface DeskSceneProps {
   lensBroken: boolean;
   endingChoice: 'A' | 'B' | null;
   endingARedactedCount: number;
+  brightness: number;
   onSelectFocus: (target: FocusTarget) => void;
 }
 
@@ -65,13 +66,27 @@ const CameraController: React.FC<{ focusTarget: FocusTarget }> = ({ focusTarget 
 };
 
 /* ============================================================================
+   RENDERER EXPOSURE CONTROLLER
+   ============================================================================ */
+const ExposureController: React.FC<{ brightness: number }> = ({ brightness }) => {
+  const gl = useThree((state) => state.gl);
+
+  useEffect(() => {
+    gl.toneMappingExposure = 1.05 * brightness;
+  }, [gl, brightness]);
+
+  return null;
+};
+
+/* ============================================================================
    LIGHTING RIG: NORMAL PENDANT LAMP vs. EERIE HYPNOTIC DISCO LIGHTS
    ============================================================================ */
 const OfficeAndDiscoLighting: React.FC<{
   lensBroken: boolean;
   endingChoice: 'A' | 'B' | null;
   endingARedactedCount: number;
-}> = ({ lensBroken, endingChoice, endingARedactedCount }) => {
+  brightness: number;
+}> = ({ lensBroken, endingChoice, endingARedactedCount, brightness }) => {
   const discoGroupRef = useRef<THREE.Group>(null);
   const pendantSpotRef = useRef<THREE.SpotLight>(null);
   const brokenTimestampRef = useRef<number | null>(null);
@@ -119,13 +134,13 @@ const OfficeAndDiscoLighting: React.FC<{
           const glitch =
             (elapsedMs > 80 && elapsedMs < 180) ||
             (elapsedMs > 320 && elapsedMs < 440);
-          pendantSpotRef.current.intensity = glitch ? 0.12 : 2.8;
+          pendantSpotRef.current.intensity = (glitch ? 0.16 : 3.8) * brightness;
           return;
         }
       }
       pendantSpotRef.current.intensity = THREE.MathUtils.lerp(
         pendantSpotRef.current.intensity,
-        2.6 * normalLampFactor,
+        3.6 * normalLampFactor * brightness,
         delta * 4
       );
     }
@@ -134,7 +149,7 @@ const OfficeAndDiscoLighting: React.FC<{
   return (
     <>
       <ambientLight
-        intensity={discoFactor > 0 ? 0.3 : 0.42}
+        intensity={(discoFactor > 0 ? 0.42 : 0.62) * brightness}
         color={discoFactor > 0 ? '#cbb8d4' : '#e8dfd1'}
       />
 
@@ -142,10 +157,10 @@ const OfficeAndDiscoLighting: React.FC<{
       <spotLight
         ref={pendantSpotRef}
         position={[0, 2.65, 0.35]}
-        angle={0.75}
+        angle={0.78}
         penumbra={0.65}
-        intensity={2.6}
-        distance={6}
+        intensity={3.6 * brightness}
+        distance={6.5}
         color="#fff0d4"
         castShadow
         shadow-mapSize-width={1024}
@@ -156,8 +171,8 @@ const OfficeAndDiscoLighting: React.FC<{
       {!lensBroken && (
         <pointLight
           position={[-0.25, 1.65, -1.15]}
-          intensity={1.1}
-          distance={2.5}
+          intensity={1.45 * brightness}
+          distance={3.0}
           color="#f5d18c"
         />
       )}
@@ -171,8 +186,8 @@ const OfficeAndDiscoLighting: React.FC<{
             <pointLight
               position={[1.15, -0.35, 0.55]}
               color="#ff007f"
-              intensity={3.2}
-              distance={4.5}
+              intensity={3.4 * brightness}
+              distance={4.8}
             />
           )}
           {/* Beam 2: Cold Cyan (#00e5ff) */}
@@ -180,8 +195,8 @@ const OfficeAndDiscoLighting: React.FC<{
             <pointLight
               position={[-1.05, -0.25, 0.45]}
               color="#00e5ff"
-              intensity={3.0}
-              distance={4.5}
+              intensity={3.2 * brightness}
+              distance={4.8}
             />
           )}
           {/* Beam 3: Sickly Amber (#ffaa00) */}
@@ -189,8 +204,8 @@ const OfficeAndDiscoLighting: React.FC<{
             <pointLight
               position={[0.1, -0.3, -0.95]}
               color="#ffaa00"
-              intensity={2.8}
-              distance={4.5}
+              intensity={3.0 * brightness}
+              distance={4.8}
             />
           )}
 
@@ -398,6 +413,7 @@ export const DeskScene: React.FC<DeskSceneProps> = ({
   lensBroken,
   endingChoice,
   endingARedactedCount,
+  brightness,
   onSelectFocus,
 }) => {
   const walnutTex = useMemo(() => createWalnutDeskTexture(), []);
@@ -437,11 +453,13 @@ export const DeskScene: React.FC<DeskSceneProps> = ({
         <color attach="background" args={['#080706']} />
         <fogExp2 attach="fog" args={['#080706', 0.15]} />
 
+        <ExposureController brightness={brightness} />
         <CameraController focusTarget={focusTarget} />
         <OfficeAndDiscoLighting
           lensBroken={lensBroken}
           endingChoice={endingChoice}
           endingARedactedCount={endingARedactedCount}
+          brightness={brightness}
         />
 
         {/* ====================================================================
